@@ -1,31 +1,38 @@
-const functions = require('firebase-functions');
-const admin = require('firebase-admin');
+const functions = require('firebase-functions')
+const admin = require('firebase-admin')
 
-admin.initializeApp();
+admin.initializeApp()
 
-const express = require('express');
-const app = express();
+const express = require('express')
+const app = express()
 
 app.get('/screams', (req, res) => {
   admin
     .firestore()
-    .collection('scereams').get()
+    .collection('scereams')
+    .orderBy('createdAt', 'desc')
+    .get()
     .then(data => {
       let screams = [];
       data.forEach(doc => {
-        screams.push(doc.data())
+        screams.push({
+          screamId: doc.id,
+          body: doc.data().body,
+          userHendle: doc.data().userHendle,
+          createdAt: doc.data().createdAt
+        })
       });
       return res.json(screams);
     })
     .catch(err => console.error(err))
 })
 
-app.post('/scream',(req, res) => {
+app.post('/screams',(req, res) => {
 
   const newScream = {
     body: req.body.body,
     userHendle: req.body.userHendle,
-    createdAt: admin.firestore.Timestamp.fromDate(new Date())
+    createdAt: new Date().toISOString()
   }
 
   admin
@@ -43,4 +50,4 @@ app.post('/scream',(req, res) => {
 
 // https://baseurl.com/api/
 
-exports.api = functions.https.onRequest(app);
+exports.api = functions.region('europe-west1').https.onRequest(app)

@@ -64,6 +64,19 @@ app.post('/screams',(req, res) => {
     })
 })
 
+
+const isEmail = (email) => {
+  const emailRegEx = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  if(email.match(emailRegEx)) return true
+  else return false
+}
+
+const isEmpty = (string) => {
+  if(string.trim() === '') return true 
+  else return false
+}
+
+
 // route Sign up
 app.post('/signup', (req, res) => {
   const newUser = {
@@ -72,6 +85,18 @@ app.post('/signup', (req, res) => {
     confirmPassword: req.body.confirmPassword,
     handle: req.body.handle
   }
+
+  let errors = {}
+
+  if(isEmpty(newUser.email)) errors.email = 'Mush not be empty'
+  else if(!isEmail(newUser.email)) errors.email = 'Mash be a valid email address'
+  
+  if(isEmpty(newUser.password)) errors.password = 'Mush not be empty'
+  if(isEmpty(newUser.handle)) errors.handle = 'Mush not be empty'
+  if(newUser.password !== newUser.confirmPassword) 
+    errors.confirmPassword = 'Passwords mush match'
+
+  if(Object.keys(errors).length > 0) return res.status(400).json(errors)
 
   // TODO: validate data
   let token 
@@ -109,6 +134,32 @@ app.post('/signup', (req, res) => {
         return res.status(500).json({ error: err.code })
       }
     })
+})
+
+
+app.post('/login', (req, res) => {
+  const user = {
+    email : req.body.email,
+    password : req.body.password
+  }
+
+  let errors = {}
+  if (isEmpty(user.email)) errors.email = 'Mush not be empty'
+  if (isEmail(user.password)) errors.password = 'Mush not be empty'
+
+  if(Object.keys(errors).length > 0) return res.status(400).json(errors)
+
+  // sign in firebase user
+  firebase.auth().signInWithEmailAndPassword(user.email, user.password)
+  .then(data => data.user.getIdToken())
+  .then(token => res.json({ token }))
+  .catch(err => {
+    console.log(err)
+    if( err.code === 'auth/wrong-password') {
+      return res.status(406).json({ ganeral: 'Wrong Credential, Please try again'  })
+    }
+    res.status(500).json({erroer: err.code})
+  })
 })
 
 exports.api = functions.region('europe-west1').https.onRequest(app)

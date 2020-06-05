@@ -1,10 +1,11 @@
+const { validateSignupData, validateLoginData, reduceUserDetail } = require('../util/validators')
 const { admin, db } = require('../util/admin')
-const firebase = require('firebase')
 const config = require('../util/config')
-const { validateSignupData, validateLoginData } = require('../util/validators')
+const firebase = require('firebase')
 firebase.initializeApp(config);
 
 
+// Sign up user
 exports.signUp = (req, res) => {
   const newUser = {
     email: req.body.email,
@@ -55,8 +56,10 @@ exports.signUp = (req, res) => {
         return res.status(500).json({ error: err.code })
       }
     })
+    return null;
 }
 
+// Login users
 exports.login = (req, res) => {
   const user = {
     email : req.body.email,
@@ -78,8 +81,47 @@ exports.login = (req, res) => {
       return res.status(500).json({erroer: err.code})
     }
   })
+  return null;
 }
 
+// Add User Detail
+exports.addUserDetail = (req, res) => {
+  let userDetail = reduceUserDetail(req.body)
+
+  db.doc(`/users/${ req.user.handle }`).update(userDetail)
+    .then(() => {
+      return res.json({ message: 'Details added successfully' })
+    })
+    .catch(err => {
+      return res.status(500).json({ error: err.code })
+    })
+  }
+  
+// Get User Details
+exports.getAuthenticationUser = (req, res) => {
+  let userData = {}
+  db.doc(`/users/${req.user.handle}`).get()
+    .then(doc => {
+      if (doc.exists) {
+        userData.credentials = doc.data()
+        return db.collection('likes').where('userHandle', '==', req.user.handle).get()
+      }
+      return null
+    })
+    .then(data => {
+      userData.likes = []
+      data.forEach(doc => {
+        userData.likes.push(doc.data())
+      })
+      return res.json(userData)
+    })
+    .catch(err => {
+      console.error(err);
+      return res.status(500).json({ error: err.code })
+    })
+}
+
+// Upload image profile user
 exports.uploadImage = (req, res) => {
   const BusBoy = require('busboy')
   const path = require('path')
@@ -94,17 +136,15 @@ exports.uploadImage = (req, res) => {
     if(mimetype !== 'image/jpeg' && mimetype !== 'image/png') {
       return res.status(400).json({ error: 'Wrong file type submitted' })
     }
-
-    // my.image.png
+    // my.image.png -> ['my', 'image', 'png']
     const imageExtension = filename.split('.')[filename.split('.').length - 1]
     // 8364138951.png
-    imageFileName = `${Math.round(
-      Math.random() * 1000000000000
-    )}.${imageExtension}`;
+    imageFileName = `${Math.round( Math.random() * 1000000000000 )}.${imageExtension}`;
     console.log(imageExtension)
     const filepath = path.join(os.tmpdir(), imageFileName)
     imageToBeUploaded = { filepath, mimetype }
     file.pipe(fs.createWriteStream(filepath))
+    return null
   })
   busboy.on('finish', () => {
     admin

@@ -1,4 +1,4 @@
-const serviceAccount = require("../../../mejengapp-4d31f-firebase-adminsdk-c7i1c-4697be777e.json");
+const serviceAccount = require("../../mejengapp-4d31f-firebase-adminsdk-c7i1c-4697be777e.json");
 const admin = require('firebase-admin')
 
 admin.initializeApp({

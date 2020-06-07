@@ -46,6 +46,7 @@ exports.postScreams = (req, res) => {
       res.json({ error: 'somethings went wrong' })
       console.error(err)
     })
+    return null
 } 
 
 exports.getScream = (req, res) => {
@@ -101,6 +102,7 @@ exports.commentOnScream = (req, res) => {
       console.log(err)
       res.status(500).json({ error: 'Something went wrong' })
     })
+    return null
 }
 
 exports.likeScream = (req, res) => {

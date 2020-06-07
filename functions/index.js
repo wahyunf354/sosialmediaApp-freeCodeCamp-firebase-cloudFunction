@@ -12,11 +12,14 @@ const {
   login, 
   uploadImage, 
   addUserDetail, 
-  getAuthenticationUser 
+  getAuthenticationUser,
+  markNotificationsRead,
+  getUserDetails
 } = require('./handlers/users')
 const functions = require('firebase-functions')
 const FBAuth = require('./util/fbAuth')
 const app = require('express')()
+const { db } = require('./util/admin.js')
 
 // Screams Route
 app.post('/screams', FBAuth, postScreams)
@@ -34,6 +37,8 @@ app.post('/login', login)
 app.post('/user/image', FBAuth, uploadImage)
 app.post('/user', FBAuth, addUserDetail)
 app.get('/user', FBAuth, getAuthenticationUser)
+app.get('/user/:handle', getUserDetails)
+app.get('/notifications',FBAuth ,markNotificationsRead)
 
 exports.api = functions.region('europe-west1').https.onRequest(app)
 
@@ -41,16 +46,16 @@ exports.createNotificationOnLike = functions
   .region('europe-west1')
   .firestore.document('likes/{id}')
   .onCreate(snapshot => {
-    return db
+    db
       .doc(`/scereams/${snapshot.data().screamId}`)
       .get()
-      .then(() => {
+      .then((doc) => {
         if (doc.exists) {
           return db.doc(`/notifications/${snapshot.id}`)
             .set({
               createdAt: new Date().toISOString(),
-              recipient: doc.data().userHandle,
-              sender: snapshot.data().userHendle,
+              recipient: doc.data().userHendle,
+              sender: snapshot.data().userHandle,
               type: 'like',
               read: false,
               screamId: doc.id
@@ -60,7 +65,7 @@ exports.createNotificationOnLike = functions
       .then(() => {
         return;
       })
-      .cacth(err => {
+      .catch(err => {
         console.error(err)
         return;
       })
@@ -68,7 +73,7 @@ exports.createNotificationOnLike = functions
 
 exports.deleteNotificationOnUnLike = functions
   .region('europe-west1')
-  .firestore.document('comments/{id}')
+  .firestore.document('likes/{id}')
   .onDelete(snapshot => {
     db
       .doc(`/notifications/${snapshot.id}`)
@@ -89,12 +94,12 @@ exports.createNotificationOnComment = functions
     return db
       .doc(`/scereams/${snapshot.data().screamId}`)
       .get()
-      .then(() => {
+      .then((doc) => {
         if (doc.exists && doc.data().userHendle !== snapshot.data().userHendle) {
           return db.doc(`/notifications/${snapshot.id}`)
             .set({
               createdAt: new Date().toISOString(),
-              recipient: doc.data().userHandle,
+              recipient: doc.data().userHendle,
               sender: snapshot.data().userHandle,
               type: 'comment',
               read: false,
@@ -105,7 +110,7 @@ exports.createNotificationOnComment = functions
       .then(() => {
         return
       })
-      .cacth(err => {
+      .catch(err => {
         console.error(err)
         return
       })
